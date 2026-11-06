@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>磁盘空间地图</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 44 44" role="img">
+            <rect x="3" y="4" width="18" height="15" rx="2.4" fill="#0f8b7e"/>
+            <rect x="23" y="4" width="18" height="8" rx="2.4" fill="#e06a70"/>
+            <rect x="23" y="14" width="18" height="5" rx="2.4" fill="#f0a0a2"/>
+            <rect x="3" y="21" width="10" height="19" rx="2.4" fill="#22a393"/>
+            <rect x="15" y="21" width="12" height="19" rx="2.4" fill="#cf535c"/>
+            <rect x="29" y="21" width="12" height="9" rx="2.4" fill="#0c756b"/>
+            <rect x="29" y="32" width="12" height="8" rx="2.4" fill="#eb8a8d"/>
+          </svg>
+        </div>
+        <div class="brand-copy">
+          <h1>磁盘空间地图</h1>
+          <p>看清空间去向，点开就能查看</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="btn btn-quiet" id="searchBtn" type="button" title="搜索文件名 (Ctrl + K)">
+          <span class="btn-icon" id="searchIcon" aria-hidden="true"></span>
+          <span>搜索文件</span>
+        </button>
+        <button class="btn btn-quiet" id="cleanupBtn" type="button" title="扫描缓存和大文件">
+          <span class="btn-icon" id="cleanupIcon" aria-hidden="true"></span>
+          <span>智能清理</span>
+        </button>
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot"></span>
+          <span id="statusText">正在连接…</span>
+        </div>
+        <button class="btn btn-primary" id="refreshBtn" type="button">
+          <span class="btn-icon" id="refreshIcon" aria-hidden="true"></span>
+          <span id="refreshLabel">刷新</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="drive-strip" id="driveStrip" aria-label="磁盘列表"></section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="crumb-wrap">
+            <button class="icon-btn back-btn" id="backBtn" type="button" title="返回上一级 (Alt + ←)" aria-label="返回上一级"></button>
+            <nav class="breadcrumb" id="breadcrumb" aria-label="当前位置"></nav>
+          </div>
+
+          <div class="panel-tools">
+            <div class="panel-meta" id="panelMeta"></div>
+            <div class="view-switch" role="group" aria-label="视图">
+              <button class="view-btn active" type="button" data-view="map" id="mapViewBtn" title="方块地图">
+                <span class="view-icon" aria-hidden="true"></span><span>地图</span>
+              </button>
+              <button class="view-btn" type="button" data-view="list" id="listViewBtn" title="列表视图">
+                <span class="view-icon" aria-hidden="true"></span><span>列表</span>
+              </button>
+            </div>
+            <button class="btn btn-ghost" id="openFolderBtn" type="button">
+              <span class="btn-icon" id="openIcon" aria-hidden="true"></span>
+              <span>在资源管理器中打开</span>
+            </button>
+          </div>
+          <div class="scan-line" id="scanLine"><i></i></div>
+        </div>
+
+        <div class="map-area" id="mapArea">
+          <div class="treemap" id="treemap"></div>
+
+          <div class="list-view" id="listView" hidden>
+            <div class="list-toolbar">
+              <div class="list-search-wrap">
+                <span class="search-icon" aria-hidden="true"></span>
+                <input id="listSearch" type="search" placeholder="在当前目录筛选…" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="list-summary" id="listSummary"></div>
+            </div>
+            <div class="list-head" aria-hidden="true">
+              <span>名称</span><span>大小</span><span>占当前目录</span><span></span>
+            </div>
+            <div class="list-body" id="listBody"></div>
+          </div>
+
+          <div class="empty-state" id="emptyState" hidden>
+            <div class="empty-art" aria-hidden="true"></div>
+            <h2 id="emptyTitle">这里还是空的</h2>
+            <p id="emptyText">这个文件夹中没有可显示的内容。</p>
+            <button class="btn btn-primary" id="emptyAction" type="button" hidden>开始扫描</button>
+          </div>
+
+          <div class="scan-screen" id="scanScreen" hidden>
+            <div class="scan-art" aria-hidden="true">
+              <div class="scan-orbit"></div>
+              <svg viewBox="0 0 64 64"><rect x="7" y="8" width="23" height="19" rx="3" fill="#0f8b7e"/><rect x="33" y="8" width="24" height="9" rx="3" fill="#e06a70"/><rect x="33" y="20" width="24" height="7" rx="3" fill="#f0a0a2"/><rect x="7" y="30" width="14" height="26" rx="3" fill="#22a393"/><rect x="24" y="30" width="15" height="26" rx="3" fill="#cf535c"/><rect x="42" y="30" width="15" height="11" rx="3" fill="#0c756b"/><rect x="42" y="44" width="15" height="12" rx="3" fill="#eb8a8d"/></svg>
+            </div>
+            <div class="scan-copy">
+              <div class="eyebrow">正在建立空间地图</div>
+              <h2 id="scanTitle">首次扫描 C: …</h2>
+              <p id="scanSubtitle">正在统计文件大小，请稍候。已经有缓存时会先显示旧地图。</p>
+            </div>
+            <div class="scan-progress-wrap">
+              <div class="scan-progress-top">
+                <span id="scanPercent">0%</span>
+                <span id="scanCounts">0 个文件</span>
+              </div>
+              <div class="scan-progress"><i id="scanProgressFill"></i></div>
+              <div class="scan-current" id="scanCurrent">准备中…</div>
+            </div>
+            <div class="scan-facts">
+              <div><span>已扫描</span><strong id="scanBytes">0 B</strong></div>
+              <div><span>文件夹</span><strong id="scanDirs">0</strong></div>
+              <div><span>用时</span><strong id="scanElapsed">0 秒</strong></div>
+              <div><span>无法访问</span><strong id="scanErrors">0</strong></div>
+            </div>
+          </div>
+
+          <div class="loading-bar" id="loadingBar"><i></i></div>
+        </div>
+
+        <footer class="panel-foot">
+          <span>单击方块进入目录 · <b>右键</b>文件夹或文件可迁移 · 右上角 <b>↗</b> 在资源管理器中打开</span>
+          <span class="privacy">仅在本机读取，不上传任何数据</span>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+  <div class="context-menu" id="contextMenu" role="menu" hidden></div>
+  <div class="modal-root" id="modalRoot"></div>
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

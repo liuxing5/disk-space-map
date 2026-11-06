@@ -1,0 +1,17 @@
+# Runtime data and local caches
+data/
+__pycache__/
+*.py[cod]
+*.log
+
+# Local screenshots / shortcuts (the public preview is docs/preview.png)
+/preview*.png
+*.lnk
+
+# Virtual environments and editor files
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
